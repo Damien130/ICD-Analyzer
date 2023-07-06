@@ -8,14 +8,20 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from tkinter import *
 from PIL import Image
+#import tensorflow as tf
 import skimage.io
 import csv
-import concurrent.futures
+
+#def rgb2gray(rgb):
+#    return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
 matplotlib.use("TkAgg")
-t, x, y, w = (1, 635, 178, 15)
+t, x, y, w = (1, 670, 158, 10)
 training_image = dt.LoadImage(f"/mnt/h/TRAINING0620.tif")()._value / 256
 crop = training_image[y:y+w, x:x+w]
+#crop = rgb2gray(crop)
+#crop = np.expand_dims(crop, axis=-1)
+#plt.imshow(crop, cmap="gray")
 plt.imshow(crop)
 plt.axis("off")
 plt.show()
@@ -35,27 +41,21 @@ model.fit(
     batch_size=8,
 )
 
-# model.save("lodeSTAR.h5py")
+model.summary()
 
-alpha = 0.2
-cutoff = 0.99
+#model.save("lodeSTAR.h5py")
 
-#image = dt.LoadImage(f"/mnt/h/20230620/LTB4-500nM-2.5uL-1_200.tif")()._value / 256
-#image = image[1, 0:200, 155:1300]
-#image = rgb2gray(image)
-#image = np.expand_dims(image, axis=-1)
-
-tif_file = '/mnt/h/20230620/LTB4-500nM-2.5uL-1_*.tif' # whildcard to read all tif files
+del tif_file
+del multi_tif
+tif_file = '/mnt/h/20230621/LTB4-500nM-2.5uL-2_*.tif' # whildcard to read all tif files
 multi_tif = skimage.io.MultiImage(tif_file) # as many objects as tif files
 length = len(multi_tif) # number of tif files
-#length = 1
 
+with open('/mnt/h/nodes20230621.csv', 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile, delimiter=',')
+    writer.writerow(['particle number', 'x', 'y', 'frame','picture'])
 
-def process_image(i):
-    csv_filename = f'/mnt/h/20230620/data/nodes20230620_{i}.csv'
-    with open (csv_filename, 'a', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['particle number', 'x', 'y', 'frame','picture'])
+for i in range(length):
     images = multi_tif[i] # read each tif file
     fNumber = 0
     for frame in images:
@@ -66,28 +66,19 @@ def process_image(i):
                                               beta=1-alpha, 
                                               cutoff=cutoff, 
                                               mode="quantile")[0]
-        num_rows, num_cols = detections.shape
-
         if fNumber == 0:
             outputFig = plt.figure(figsize=(18,2.5))
             plt.imshow(image)
             plt.axis("off")
-            plt.scatter(detections[:, 1], detections[:, 0], s=20, linewidths=1, marker="x", color="red")
-            plt.savefig(f'/mnt/h/20230620/processed/LTB4-500nM-2.5uL-1_{i}.png')
+            plt.scatter(detections[:, 1], detections[:, 0], color="r")
+            #plt.show()
+            plt.savefig(f'/mnt/h/20230621/processed/LTB4-500nM-2.5uL-1_{i}.png')
             plt.close(outputFig)
-            fNumber += 1
-
-        with open(csv_filename, 'a', newline='') as csvfile:
+        #print(detections)
+        num_rows, num_cols = detections.shape
+        with open('/mnt/h/nodes20230621.csv', 'a', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
             for j in range(num_rows):
                 writer.writerow([j, detections[j, 1], detections[j, 0], fNumber, i])
-            #del detections
-            fNumber += 1
-
-max_concurrent_tasks = 8
-with concurrent.futures.ThreadPoolExecutor(max_workers=max_concurrent_tasks) as executor:
-    executor.map(process_image, range(length))
-
-#detections = autotracker.detect(pred[0], weights[0], beta=1-alpha, alpha=alpha, cutoff=cutoff, mode="constant")
-
-#plt.imshow(image, cmap="gray")
+        del detections
+        fNumber += 1
