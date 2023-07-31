@@ -1,0 +1,104 @@
+import curses
+
+def get_user_input(stdscr):
+    stdscr.clear()
+    curses.curs_set(1)  # Show the cursor
+    curses.echo()  # Enable echoing of keys to the screen
+    stdscr.addstr(5, 0, "Please enter the following parameters:")
+
+    stdscr.addstr(7, 0, "Method (CV for computer vision; OD for object detection): ")
+    method = stdscr.getstr(7, 61, 10).decode()
+
+    stdscr.addstr(9, 0, "Image folder: ")
+    image_folder = stdscr.getstr(9, 14, curses.COLS - 14).decode()
+
+    stdscr.addstr(11, 0, "Results path: ")
+    results_path = stdscr.getstr(11, 14, curses.COLS - 14).decode()
+
+    stdscr.addstr(13, 0, "Confidence threshold (default: 0.05): ")
+    conf_thresh = stdscr.getstr(13, 40, 5).decode()
+    conf_thresh = float(conf_thresh) if conf_thresh else 0.05
+
+    stdscr.addstr(15, 0, "Batch size (default: 4): ")
+    batch_size = stdscr.getstr(15, 26, 5).decode()
+    batch_size = int(batch_size) if batch_size else 4
+
+    stdscr.addstr(17, 0, "Buffer size (default: 10): ")
+    buffer_size = stdscr.getstr(17, 28, 5).decode()
+    buffer_size = int(buffer_size) if buffer_size else 10
+
+    stdscr.addstr(19, 0, "Debug mode (True/False, default: False): ")
+    debug = stdscr.getstr(19, 42, 5).decode()
+    debug = bool(debug) if debug.lower() in ['true', 't', 'yes', 'y', '1'] else False
+
+    stdscr.addstr(21, 0, "Threshold for binary segmentation (default: 0.5): ")
+    threshold = stdscr.getstr(21, 50, 5).decode()
+    threshold = float(threshold) if threshold else 0.5
+
+    return {
+        'method': method,
+        'image_folder': image_folder,
+        'results_path': results_path,
+        'conf_thresh': conf_thresh,
+        'batch_size': batch_size,
+        'buffer_size': buffer_size,
+        'debug': debug,
+        'threshold': threshold
+    }
+
+
+def main_menu(stdscr):
+    curses.start_color()  # Start color manipulation
+    # Set the terminal to accept special key inputs (e.g., arrow keys)
+    stdscr.keypad(True)
+    # Disable automatic echoing of keys to the screen
+    curses.noecho()
+    # Hide the cursor
+    curses.curs_set(0)
+    # Initialize color pairs
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)  # White on Black
+    curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)  # Red on Black
+    curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)  # Green on Black
+    curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)  # Orange on Black
+
+    # ASCII art for SCANNER
+    scanner_ascii_art = """
+    Scalable Cell Analysis using Neural Networks for Enhanced Recognition
+    ##############################################################
+    ##############################################################
+    ##░██████╗░█████╗░░█████╗░███╗░░██╗███╗░░██╗███████╗██████╗░##
+    ##██╔════╝██╔══██╗██╔══██╗████╗░██║████╗░██║██╔════╝██╔══██╗##
+    ##╚█████╗░██║░░╚═╝███████║██╔██╗██║██╔██╗██║█████╗░░██████╔╝##
+    ##░╚═══██╗██║░░██╗██╔══██║██║╚████║██║╚████║██╔══╝░░██╔══██╗##
+    ##██████╔╝╚█████╔╝██║░░██║██║░╚███║██║░╚███║███████╗██║░░██║##
+    ##╚═════╝░░╚════╝░╚═╝░░╚═╝╚═╝░░╚══╝╚═╝░░╚══╝╚══════╝╚═╝░░╚═╝##
+    ##############################################################
+    ##############################################################"""
+
+    # Print the header lines
+    stdscr.addstr(0, 0, "Benam Lab SCANNER 1.1", curses.color_pair(1))
+    stdscr.addstr(2, 0, scanner_ascii_art, curses.color_pair(3))
+    stdscr.refresh()
+    time.sleep(1)
+
+    # Get user input for parameters
+    user_input = get_user_input(stdscr)
+
+    # check if image folder exists, if not create it
+    if not os.path.isdir(user_input['results_path']):
+        os.makedirs(user_input['results_path'])
+
+    # Call the appropriate method based on the user's input
+    if user_input['method'].lower() == 'cv':
+        run_computer_vision(user_input)
+    elif user_input['method'].lower() == 'od':
+        # Call the object detection method here if available
+        pass
+    else:
+        stdscr.addstr(23, 0, "Invalid method. Please choose 'CV' or 'OD'.", curses.color_pair(2))
+        stdscr.refresh()
+        time.sleep(2)
+        main_menu(stdscr)
+
+if __name__ == '__main__':
+    curses.wrapper(main_menu)
