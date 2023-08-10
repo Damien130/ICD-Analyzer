@@ -64,23 +64,23 @@ def extract_frame(tiff_file, output_directory, frame_index):
 
 
     # Crop the frame to remove the channel borders
-    tiff = tiff.crop((125, 0, tiff.width - 125, tiff.height))
-    background = background.crop((125, 0, background.width - 125,
-                                   background.height))
+    #tiff = tiff.crop((125, 0, tiff.width - 125, tiff.height))
+    #background = background.crop((125, 0, background.width - 125,
+    #                               background.height))
     
     # Convert the frame to a NumPy array
     tiff = cv2.cvtColor(np.array(tiff), cv2.COLOR_RGB2BGR)
-    background = cv2.cvtColor(np.array(background), cv2.COLOR_RGB2BGR)
+    #background = cv2.cvtColor(np.array(background), cv2.COLOR_RGB2BGR)
     
     # Perform background subtraction
-    subtracted_frame = cv2.absdiff(tiff, background)
+    #subtracted_frame = cv2.absdiff(tiff, background)
 
     # Enhance contrast of subtracted frame
-    for i in range(contrast_iterations):
-        substracted_frame = enhance_contrast(subtracted_frame)
+    #for i in range(contrast_iterations):
+    #    substracted_frame = enhance_contrast(subtracted_frame)
 
     # Increase brightness of subtracted frame
-    subtracted_frame = increase_brightness(subtracted_frame, brightness_factor)
+    #subtracted_frame = increase_brightness(subtracted_frame, brightness_factor)
 
     # Denoise subtracted frame
     #subtracted_frame = denoise(subtracted_frame)
@@ -91,7 +91,7 @@ def extract_frame(tiff_file, output_directory, frame_index):
 
     # Save the frame as a PNG file
     output_path = os.path.join(output_directory, f"frame_{tiff_number}_{frame_index}.png")
-    frame = Image.fromarray(subtracted_frame)
+    frame = Image.fromarray(tiff)
     frame.save(output_path, format="png", optimize = True, 
                compress_level=9)
 

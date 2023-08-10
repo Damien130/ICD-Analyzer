@@ -70,7 +70,7 @@ class preProcessor_counter:
             label_objects, _ = ndimage.label(subtracted_frame)
             sizes = np.bincount(label_objects.ravel())
             # greater than 7 microns, less than 25 microns
-            mask_sizes = (sizes > 20) & (sizes < 200) 
+            mask_sizes = (sizes > 50) & (sizes < 500) 
             mask_sizes[0] = 0 # exclude background, which is labeled as 0
             subtracted_frame = mask_sizes[label_objects] # apply mask
 
@@ -88,7 +88,7 @@ class preProcessor_counter:
         return_image = ndimage.binary_fill_holes(return_image)
 
         # Merge nearby white pixels using dilation
-        return_image = binary_dilation(return_image, structure=np.ones((5, 2)))
+        return_image = binary_dilation(return_image, structure=np.ones((5, 5)))
 
         # release memory
         image.close()
