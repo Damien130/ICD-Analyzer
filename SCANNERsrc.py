@@ -20,7 +20,8 @@ class segmentation_ObjectCounter:
         pass
 
     def predict_file(self, image_folder, save_dir, 
-                     batch_size, buffer_size, threshold, debug=False):
+                     batch_size, buffer_size, threshold, debug=False,
+                     lower_bound = 40, upper_bound = 500):
         
         tiff_images = sorted([file for file in os.listdir(image_folder) 
                              if file.endswith('.tif')], 
@@ -72,7 +73,8 @@ class segmentation_ObjectCounter:
                         # process_image(image_path, brighness factor, contrast iterations)
                         stdscr.move(1, 0) # move out of the progress bar's position
                         stdscr.clrtoeol()  # Clear the entire line
-                        future = executor.submit(ppcs.process_image, image_path, 1, threshold=threshold)
+                        future = executor.submit(ppcs.process_image, image_path, 1, threshold=threshold,
+                                                 lower_bound=lower_bound, upper_bound=upper_bound)
                         futures[image_index] = (image_name, future)
                         image_index += 1
                     
@@ -213,7 +215,9 @@ class segmentation_ObjectCounter:
         return ram_buffer, preload_index, max_images, last_loaded_index
 
     # HDD specific function, takes out random read in favor of sequential read
-    def predict_file_HDD(self, image_folder, save_dir, batch_size, preload_buffer_parameter, buffer_size, threshold,  debug=False):
+    def predict_file_HDD(self, image_folder, save_dir, batch_size, 
+                         preload_buffer_parameter, buffer_size, 
+                         threshold,  debug=False, lower_bound=40, upper_bound=500):
         tiff_images = sorted([file for file in os.listdir(image_folder)
                               if file.endswith('.tif')],
                              key=lambda x: int(x.split('_')[1].split('.')[0]))
@@ -272,7 +276,8 @@ class segmentation_ObjectCounter:
                         stdscr.clrtoeol()  # Clear the entire line
                         future = executor.submit(ppcs.process_image, None, 
                                                 1, threshold=threshold,
-                                                HDD = True, image_data=image_data)
+                                                HDD = True, image_data=image_data,
+                                                lower_bound=lower_bound, upper_bound=upper_bound)
                         futures[image_index] = (image_name, future)
                         image_index += 1
 

@@ -323,18 +323,44 @@ def get_user_input(stdscr):
                 break
 
         while True:
-            stdscr.addstr(23, 0, "Is the source files on a mechanical Hard Drive? (True/False, default: False): ")
-            hard_drive_param = stdscr.getstr(23, 77, 5).decode()
-            hard_drive = bool(hard_drive_param.lower() in ['true', 't', 'yes', 'y', '1'])
+            stdscr.addstr(23, 0, "Upper bound for cell size filtration (Default 500): ")
+            cell_size_upper_bound = stdscr.getstr(23, 55, 5).decode()
+            cell_size_upper_bound = int(cell_size_upper_bound) if cell_size_upper_bound else 500
 
-            if hard_drive_param.lower() == 'q':
+            if cell_size_upper_bound.lower() == 'q':
                 stdscr.addstr(24, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
                 stdscr.refresh()
                 time.sleep(2)
                 exit()
+            else:
+                break
+        
+        while True:
+            stdscr.addstr(24, 0, "Lower bound for cell size filtration (Default 40): ")
+            cell_size_lower_bound = stdscr.getstr(24, 55, 5).decode()
+            cell_size_lower_bound = int(cell_size_lower_bound) if cell_size_lower_bound else 40
+
+            if cell_size_lower_bound.lower() == 'q':
+                stdscr.addstr(25, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
+                stdscr.refresh()
+                time.sleep(2)
+                exit()
+            else:
+                break
+
+        while True:
+            stdscr.addstr(25, 0, "Is the source files on a mechanical Hard Drive? (True/False, default: False): ")
+            hard_drive_param = stdscr.getstr(25, 77, 5).decode()
+            hard_drive = bool(hard_drive_param.lower() in ['true', 't', 'yes', 'y', '1'])
+
+            if hard_drive_param.lower() == 'q':
+                stdscr.addstr(26, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
+                stdscr.refresh()
+                time.sleep(2)
+                exit()
             elif hard_drive_param.lower() not in ['true', 't', 'yes', 'y', '1', 'false', 'f', 'no', 'n', '0']:
-                stdscr.addstr(24, 0, "Error: Please enter 'True' or 'False'.",curses.color_pair(2))
-                stdscr.move(23, 87)
+                stdscr.addstr(26, 0, "Error: Please enter 'True' or 'False'.",curses.color_pair(2))
+                stdscr.move(25, 87)
                 stdscr.refresh()
                 stdscr.getch()
                 stdscr.clrtoeol()
@@ -342,10 +368,10 @@ def get_user_input(stdscr):
                 break
 
         if hard_drive == True:
-            stdscr.addstr(24, 0, "How much RAM are you allocating? default 50%: ")
+            stdscr.addstr(26, 0, "How much RAM are you allocating? default 50%: ")
             ram_buffer = stdscr.getstr(24, 55, 5).decode()
             if ram_buffer.lower() == 'q':
-                stdscr.addstr(25, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
+                stdscr.addstr(27, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
                 stdscr.refresh()
                 time.sleep(2)
                 exit()
@@ -358,8 +384,8 @@ def get_user_input(stdscr):
                 stdscr.clrtoeol()
                 ram_buffer = 50
             elif ram_buffer < 0:
-                stdscr.addstr(25, 0, "Error: RAM buffer cannot be less than 0%.",curses.color_pair(2))
-                stdscr.move(24, 65)
+                stdscr.addstr(27, 0, "Error: RAM buffer cannot be less than 0%.",curses.color_pair(2))
+                stdscr.move(26, 65)
                 stdscr.refresh()
                 stdscr.getch()
                 stdscr.clrtoeol()
@@ -383,7 +409,9 @@ def get_user_input(stdscr):
             'buffer_size': buffer_size,
             'debug': debug,
             'hard_drive': hard_drive,
-            'ram_buffer': ram_buffer
+            'ram_buffer': ram_buffer,
+            'cell_size_upper_bound': cell_size_upper_bound,
+            'cell_size_lower_bound': cell_size_lower_bound
         })
 
         return params
@@ -402,7 +430,9 @@ def run_object_detection_ssd(args):
                          batch_size=args['batch_size'], 
                          buffer_size=args['buffer_size'], 
                          threshold=args['threshold'], 
-                         debug=args['debug'])
+                         debug=args['debug'],
+                         cell_size_upper_bound=args['cell_size_upper_bound'],
+                         cell_size_lower_bound=args['cell_size_lower_bound'])
     
 def run_object_detection_hdd(args):
     from SCANNERsrc import segmentation_ObjectCounter as segCounter
@@ -416,7 +446,9 @@ def run_object_detection_hdd(args):
                                 preload_buffer_parameter=args['ram_buffer'],
                                 buffer_size=args['buffer_size'],
                                 threshold=args['threshold'],
-                                debug=args['debug'])
+                                debug=args['debug'],
+                                cell_size_upper_bound=args['cell_size_upper_bound'],
+                                cell_size_lower_bound=args['cell_size_lower_bound'])
 
 # Function to execute the Computer Vision ('CV') method
 def run_computer_vision(args):

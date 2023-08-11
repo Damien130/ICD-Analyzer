@@ -16,7 +16,8 @@ class preProcessor_counter:
         pass
         
     def process_image(self, image_path, contrast_iterations
-                      ,threshold = 0, HDD = False, image_data = None):
+                      ,threshold = 0, HDD = False, image_data = None,
+                      lower_bound = 40, upper_bound = 500):
         
         # Create the background subtractor in GPU
         bg_subtractor = cv2c.createBackgroundSubtractorMOG2(history=400)
@@ -69,8 +70,12 @@ class preProcessor_counter:
             # Label the connected components
             label_objects, _ = ndimage.label(subtracted_frame)
             sizes = np.bincount(label_objects.ravel())
+            
+            # !!!Gate size here!!!
             # greater than 7 microns, less than 25 microns
-            mask_sizes = (sizes > 50) & (sizes < 500) 
+            mask_sizes = (sizes > lower_bound) & (sizes < upper_bound) 
+            
+            
             mask_sizes[0] = 0 # exclude background, which is labeled as 0
             subtracted_frame = mask_sizes[label_objects] # apply mask
 
@@ -205,6 +210,8 @@ class preProcessor_counter:
             # Label the connected components
             label_objects, _ = ndimage.label(subtracted_frame)
             sizes = np.bincount(label_objects.ravel())
+            
+            
             # greater than 7 microns, less than 25 microns
             mask_sizes = (sizes > 20) & (sizes < 200) 
             mask_sizes[0] = 0 # exclude background, which is labeled as 0
