@@ -326,27 +326,33 @@ def get_user_input(stdscr):
             stdscr.addstr(23, 0, "Upper bound for cell size filtration (Default 500): ")
             cell_size_upper_bound = stdscr.getstr(23, 55, 5).decode()
             cell_size_upper_bound = int(cell_size_upper_bound) if cell_size_upper_bound else 500
-
-            if cell_size_upper_bound.lower() == 'q':
-                stdscr.addstr(24, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
-                stdscr.refresh()
-                time.sleep(2)
-                exit()
-            else:
+            
+            if cell_size_upper_bound != 0:
                 break
+
+            #if cell_size_upper_bound.lower() == 'q':
+            #    stdscr.addstr(24, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
+            #    stdscr.refresh()
+            #    time.sleep(2)
+            #    exit()
+            #else:
+            #    break
         
         while True:
             stdscr.addstr(24, 0, "Lower bound for cell size filtration (Default 40): ")
             cell_size_lower_bound = stdscr.getstr(24, 55, 5).decode()
             cell_size_lower_bound = int(cell_size_lower_bound) if cell_size_lower_bound else 40
-
-            if cell_size_lower_bound.lower() == 'q':
-                stdscr.addstr(25, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
-                stdscr.refresh()
-                time.sleep(2)
-                exit()
-            else:
+            
+            if cell_size_lower_bound != 0:
                 break
+
+            #if cell_size_lower_bound.lower() == 'q':
+             #   stdscr.addstr(25, 0, "User initiated shutdown, exiting...", curses.color_pair(2))
+              #  stdscr.refresh()
+               # time.sleep(2)
+               # exit()
+            #else:
+            #    break
 
         while True:
             stdscr.addstr(25, 0, "Is the source files on a mechanical Hard Drive? (True/False, default: False): ")
@@ -416,7 +422,7 @@ def get_user_input(stdscr):
 
         return params
     
-
+    
 # Function to execute the Object Detection ('OD') method
 def run_object_detection_ssd(args):
     from preProcessing import preProcessor_counter, preProcessor_CV
@@ -431,8 +437,8 @@ def run_object_detection_ssd(args):
                          buffer_size=args['buffer_size'], 
                          threshold=args['threshold'], 
                          debug=args['debug'],
-                         cell_size_upper_bound=args['cell_size_upper_bound'],
-                         cell_size_lower_bound=args['cell_size_lower_bound'])
+                         lower_bound=args['cell_size_lower_bound'],
+                         upper_bound=args['cell_size_upper_bound'])
     
 def run_object_detection_hdd(args):
     from SCANNERsrc import segmentation_ObjectCounter as segCounter
