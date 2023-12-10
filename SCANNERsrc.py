@@ -345,3 +345,72 @@ class segmentation_ObjectCounter:
             curses.endwin()
             os.system('cls' if os.name == 'nt' else 'clear')
             print("All images processed, total count: ", totalCount)
+
+    # predict video stream
+    def predict_video(self, video_folder, save_dir, 
+                     batch_size = 1, buffer_size = 16, threshold = 0.05, debug=False,
+                     lower_bound = 40, upper_bound = 500, totalCount = 0):
+        
+        video_stream = sorted([file for file in os.listdir(video_folder) 
+                             if file.endswith('.avi')], 
+                             key=lambda x: int(x.split('_')[1].split('.')[0]))
+        
+        image_dir = os.path.join(save_dir, 'images')
+        
+        if not os.path.isdir(save_dir):
+            os.makedirs(save_dir)
+
+        if not os.path.isdir(image_dir):
+            os.makedirs(image_dir)
+        
+        csv_file = os.path.join(save_dir, 'cell_count.csv')
+
+        image_index = 0 # Initialize image index
+        totalCount = 0
+        frame_queue = queue.Queue()
+        ppcs = preProcessor_counter() # Initialize the preprocessor object
+
+        # Calculate the total number of batches based on the total number of images and the batch size
+        total_batches = ceil(len(video_stream) / batch_size)
+
+        
+        # Initialize lists to store batch numbers and total counts for plotting
+        batch_times = []
+        total_counts = []
+
+        expected_image_index = 0  # Initialize the expected image index
+        while expected_image_index < len(video_stream):
+            image_name = video_stream[image_index]
+            image_path = os.path.join(video_folder, image_name)
+            cap = cv2.VideoCapture(image_path)
+
+            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            chunk_size = 100
+            num_chunks = ceil(frame_count / chunk_size)
+
+            for chunk_index in range(num_chunks):
+                start_frame = chunk_index * chunk_size
+                end_frame = min((chunk_index + 1) * chunk_size, frame_count)
+                future = ppcs.process_video(image_path, start_frame, end_frame, 1, threshold=threshold,
+                                        lower_bound=lower_bound, upper_bound=upper_bound)
+                # Get the processed image
+                processed_image = future
+
+                if debug:
+                    frame_path = os.path.join(video_folder, image_name)
+                    cv2.imwrite(frame_path, processed_image * 255)
+
+
+                # Add the processed image to the queue
+                frame_queue.put((image_name, processed_image))
+                frame_queue.put(None)  # indicate end of batch
+                totalCount = self.process_queue(frame_queue, totalCount, csv_file)
+                chunk_index += 1
+
+
+            # Check if the batch is complete, or if the last image has been processed
+            #if expected_image_index % batch_size == 0 or expected_image_index == len(tiff_images) - 1:
+            
+            # process the queue
+            #totalCount = self.process_queue(frame_queue, totalCount, csv_file)
+

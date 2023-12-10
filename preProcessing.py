@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import cv2.cuda as cv2c # type: ignore
+import cupy as cp
 from PIL import Image, ImageSequence
 from tqdm import tqdm
 from skimage import color
@@ -21,10 +22,7 @@ class preProcessor_counter:
         
         # Create the background subtractor in GPU
         bg_subtractor = cv2c.createBackgroundSubtractorMOG2(history=400)
-        #canny_edge_detector = cv2c.createCannyEdgeDetector(low_thresh=100, 
-        #                                                   high_thresh=200, 
-        #                                                   apperture_size=3, 
-        #                                                  L2gradient=True)
+
         if HDD == False:
             image = Image.open(image_path)
         else :
@@ -72,9 +70,7 @@ class preProcessor_counter:
             sizes = np.bincount(label_objects.ravel())
             
             # !!!Gate size here!!!
-            # greater than 7 microns, less than 25 microns
             mask_sizes = (sizes > lower_bound) & (sizes < upper_bound) 
-            
             
             mask_sizes[0] = 0 # exclude background, which is labeled as 0
             subtracted_frame = mask_sizes[label_objects] # apply mask
@@ -100,54 +96,63 @@ class preProcessor_counter:
         return return_image
     
 
-    def process_video(self, video_path, contrast_iterations, threshold=0,
-                    HDD=False, image_data=None, lower_bound=40, upper_bound=500):
+    def process_video(self, video_stream, start, finish, contrast_iterations, threshold=0,
+                    HDD=False, lower_bound=40, upper_bound=500):
 
-        bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=400)
-
-        if HDD == False:
-            cap = cv2.VideoCapture(video_path)
-        else:
-            # If image_data is not None, you might need to use a different approach
-            # to read frames from the video stored in memory.
-            # This depends on how the video data is stored.
-            # For simplicity, let's assume image_data is not used for videos in this example.
-            cap = cv2.VideoCapture(video_path)
-
-        num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        bar_format = '{desc}: {percentage:3.0f}%\x1b[33m|{bar}\x1b[0m| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
-        progress_bar = tqdm(total=num_frames, desc="Preprocessing", leave=False,
-                            bar_format=bar_format)
+        bg_subtractor = cv2c.createBackgroundSubtractorMOG2(history=400)
+        video_stream.set(cv2.CAP_PROP_POS_FRAMES, start)
+        print("start: ", start)
+        print("finish: ", finish)
+        #cap = cv2.VideoCapture(video_path)
+        #num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        #bar_format = '{desc}: {percentage:3.0f}%\x1b[33m|{bar}\x1b[0m| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+        #progress_bar = tqdm(total=num_frames, desc="Preprocessing", leave=False,
+        #                    bar_format=bar_format)
 
         single_pixel_lines = []
+        stream = cv2c.Stream_Null()
+
         while True:
-            ret, frame = cap.read()
+            ret, frame = video_stream.read()
+            start += 1
+            if start > finish:
+                break
             if not ret:
                 break
 
             # convert the page to grayscale
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-            
+
             # Transfer the frame to the GPU memory
             gpu_frame = cv2c.GpuMat()
             gpu_frame.upload(frame)
-            stream = cv2c.Stream_Null()
 
             # Enhance the contrast of the frame
             for i in range(contrast_iterations):
                 gpu_frame = self.enhance_contrast(gpu_frame, stream=stream)
+            
+            # Save gpuframe as cupy matrix
+            cp_frame = cp.asarray(cv2c.GpuMat.download(gpu_frame))
 
             # Apply background subtraction on the GPU
             fg_mask_gpu = bg_subtractor.apply(gpu_frame, learningRate=0.05, 
                                                 stream = stream)
 
+            # convert mask to cupy matrix
+            cp_mask = cp.asarray(cv2c.GpuMat.download(fg_mask_gpu))
+
             # Download the foreground mask from GPU memory to CPU memory
-            foreground_mask_cpu = cv2c.GpuMat.download(fg_mask_gpu)
+            #foreground_mask_cpu = cv2c.GpuMat.download(fg_mask_gpu)
 
             # Apply the foreground mask to the frame
-            subtracted_frame = cv2.bitwise_and(frame, frame, mask=foreground_mask_cpu)
+            #subtracted_frame = cv2.bitwise_and(frame, frame, mask=foreground_mask_cpu)
 
+            # Convert to cupy.ndarray to use elementwise
+            cp_result = cp.ElementwiseKernel('T x, T y', 'T z', 'z = x & y', 'bitwise_and')(cp_frame, cp_mask)
             gpu_frame.release()
+
+            # Download the result from GPU to CPU
+            subtracted_frame = cp_result.get()
 
             # Convert edges to binary
             subtracted_frame = subtracted_frame > threshold
@@ -163,7 +168,6 @@ class preProcessor_counter:
             # greater than 7 microns, less than 25 microns
             mask_sizes = (sizes > lower_bound) & (sizes < upper_bound) 
             
-            
             mask_sizes[0] = 0 # exclude background, which is labeled as 0
             subtracted_frame = mask_sizes[label_objects] # apply mask
 
@@ -172,10 +176,13 @@ class preProcessor_counter:
             # Reshape the 1D array to a 2D array with a second dimension of size 1
             cropped_line = np.expand_dims(cropped_line, axis=1)
             single_pixel_lines.append(cropped_line)
-            progress_bar.update(1)  # Increment the progress bar
+            #progress_bar.update(1)  # Increment the progress bar
 
-        progress_bar.close()
-        cap.release()
+        #progress_bar.close()
+        #cap.release()
+
+        # Release the stream at the end
+        stream.release()
 
         # Concatenate all the single-pixel lines horizontally to create the return image.
         return_image = np.concatenate(single_pixel_lines, axis=1)
@@ -184,9 +191,6 @@ class preProcessor_counter:
         # Merge nearby white pixels using dilation
         return_image = binary_dilation(return_image, structure=np.ones((5, 5)))
         return return_image
-        # Rest of your existing code remains unchanged
-
-        
 
         
     def process_image_demo(self, image_path, contrast_iterations, generate_image, output_path, threshold=0):

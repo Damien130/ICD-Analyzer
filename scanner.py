@@ -431,7 +431,8 @@ def run_object_detection_ssd(args):
     counter = segCounter()
     os.system('cls' if os.name == 'nt' else 'clear')
     # start process
-    counter.predict_file(image_folder=args['image_folder'], 
+    # changed to predict video instead
+    counter.predict_video(video_folder=args['image_folder'], 
                          save_dir=args['results_path'], 
                          batch_size=args['batch_size'], 
                          buffer_size=args['buffer_size'], 
