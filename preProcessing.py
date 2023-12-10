@@ -101,8 +101,7 @@ class preProcessor_counter:
 
         bg_subtractor = cv2c.createBackgroundSubtractorMOG2(history=400)
         video_stream.set(cv2.CAP_PROP_POS_FRAMES, start)
-        print("start: ", start)
-        print("finish: ", finish)
+        
         #cap = cv2.VideoCapture(video_path)
         #num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         #bar_format = '{desc}: {percentage:3.0f}%\x1b[33m|{bar}\x1b[0m| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
@@ -182,7 +181,7 @@ class preProcessor_counter:
         #cap.release()
 
         # Release the stream at the end
-        stream.release()
+        #stream.release()
 
         # Concatenate all the single-pixel lines horizontally to create the return image.
         return_image = np.concatenate(single_pixel_lines, axis=1)
