@@ -6,7 +6,12 @@ from tqdm import tqdm
 import numpy as np
 
 # Specify the directory where the TIFF files are located
-directory = '/mnt/d/Benam/ICDExample/Example/Small'
+directory = '/mnt/d/Benam/ICDExample/Example'
+dirOut = '/mnt/h/Video'
+
+# Check if the directory exists and create it if it doesn't
+if not os.path.isdir(dirOut):
+    os.makedirs(dirOut, exist_ok=True)
 
 # Get a list of all TIFF files in the directory
 files = glob.glob(os.path.join(directory, '*.tif'))
@@ -19,8 +24,8 @@ frame = np.array(tiff)
 height, width, layers = frame.shape
 
 # Create a VideoWriter object
-output_file = os.path.join(directory, 'output.avi')
-video = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'X264'), 60, (width, height))
+output_file = os.path.join(dirOut, 'output.avi')
+video = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'X264'), 120, (width, height))
 
 # Initialize the progress bar
 pbar = tqdm(total=len(files))
