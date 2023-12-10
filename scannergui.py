@@ -20,6 +20,8 @@ window_height = 720
 progress = 0
 cell_count = [0]
 flow_rate = [0]
+time_elapsed = [0]
+FPS = 30
 
 dpg.create_context()
 dpg.create_viewport(title='SCANNER', width=1280, height=720)
@@ -70,6 +72,12 @@ def set_current_callback(callback):
     current_callback = callback
     dpg.show_item("file_dialog_id")
 
+def setFPS(sender, app_data):
+    global FPS
+    print('FPS was set.')
+    FPS = int(dpg.get_value("FPS_input"))
+    print(FPS)
+
 def start_scan(sender, app_data):
     print('Scan was started.')
     print("Input Directory: ", input_directory)
@@ -83,8 +91,14 @@ def start_scan(sender, app_data):
                         #totalCount=cell_count,
                         #objectCount=flow_rate)
     
-def update_plots(totalCount, objectCount):
-    dpg.set_value('lePlot', [totalCount, objectCount])
+def update_plots(Time, YTotal, YRate):
+    dpg.set_value('lePlot', [Time, YTotal])
+    dpg.set_axis_limits('x_axis_lePlot', 0, Time[-1]+5)
+    dpg.set_axis_limits('y_axis_lePlot', 0, YTotal[-1]+5)
+
+    dpg.set_value('FlowPlot', [Time, YRate])
+    dpg.set_axis_limits('x_axis_FlowPlot', 0, Time[-1]+5)
+    dpg.set_axis_limits('y_axis_FlowPlot', 0, max(YRate)+5)
 
 def predict_video(video_folder, save_dir, 
                     batch_size = 1, buffer_size = 16, threshold = 0.05, debug=False,
@@ -152,8 +166,9 @@ def predict_video(video_folder, save_dir,
 
             # Calculate the sum of all values in the objectCount list and append it to the totalCount list
             totalCount.append(sum(objectCount))
-            
-            update_plots(totalCount, objectCount)
+            time_elapsed.append(end_frame / FPS)
+            print("Time elapsed: ", time_elapsed)
+            update_plots(time_elapsed, totalCount, objectCount)
             
 
         # Check if the batch is complete, or if the last image has been processed
@@ -214,17 +229,32 @@ def create_main_window(sender, app_data):
             # Add user input box
             dpg.add_input_text(label="", width=30, tag="lower_gate_size_input")
             dpg.add_button(label="Set", callback = setLowerGateSize)
+
+        with dpg.group(horizontal=True):
+            # Add text explaining "lower boundary"
+            dpg.add_text("Microscopy FPS")
+            # Add user input box
+            dpg.add_input_text(label="", width=30, tag="FPS_input")
+            dpg.add_button(label="Set", callback = setFPS)
         # Add a button for starting the scan
         dpg.add_button(label="Start Scan", callback=start_scan)
         # Draw a vertical line to separate input and output windows
         dpg.draw_line((200, 0), (200, 720), color=(255, 255, 255, 255), thickness=1.0)
 
-    with dpg.window(label="Statistics", width=500, height=500):
-        with dpg.plot(label="Flow Rate", height=300, width=500):
-            dpg.add_plot_axis(dpg.mvXAxis, label="x")
-            dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_lePlot")
+    with dpg.window(label="Statistics", width=1050, height=700, pos=(220,10)):
+        with dpg.plot(label="Total Count", width=1030, height=330,  tag="TotalCountPlot"):
+            dpg.add_plot_axis(dpg.mvXAxis, label="Time Elapsed (Seconds)", tag="x_axis_lePlot")
+            dpg.add_plot_axis(dpg.mvYAxis, label="Total Cell Count", tag="y_axis_lePlot")
+            dpg.set_axis_limits('x_axis_lePlot', 0, 10)
+            dpg.set_axis_limits('y_axis_lePlot', 0, 10)
+            dpg.add_line_series(time_elapsed, cell_count, label="Total", parent="x_axis_lePlot", tag="lePlot")
 
-            dpg.add_line_series(cell_count, flow_rate, label="plot", parent="y_axis_lePlot", tag="lePlot")
+        with dpg.plot(label="Cell Flow Rate", width=1030, height=330,  tag="FlowRatePlot"):
+            dpg.add_plot_axis(dpg.mvXAxis, label="Time Elapsed (Seconds)", tag="x_axis_FlowPlot")
+            dpg.add_plot_axis(dpg.mvYAxis, label="Instataneous Flow Rate", tag="y_axis_FlowPlot")
+            dpg.set_axis_limits('x_axis_FlowPlot', 0, 10)
+            dpg.set_axis_limits('y_axis_FlowPlot', 0, 10)
+            dpg.add_line_series(time_elapsed, cell_count, label="Flow", parent="x_axis_FlowPlot", tag="FlowPlot")    
     
     dpg.set_primary_window("SCANNER", True)
 
